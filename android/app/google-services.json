@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1043032763922",
+    "project_id": "accessgo-188ae",
+    "storage_bucket": "accessgo-188ae.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1043032763922:android:0d4260ea94bf234f0a32cb",
+        "android_client_info": {
+          "package_name": "com.arejaysay.pass_slip_management"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDM7HvmZQIF8wpEpO4lW8ZvlOYLR1VHBRQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
