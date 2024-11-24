@@ -54,6 +54,7 @@ dependencies:
   scrollable_table_view: ^2.0.3
   pie_chart: ^5.4.0
   holiday_event_api: ^1.0.2
+  syncfusion_flutter_charts: ^27.2.3
 
   # PUSH NOTIFICATIONS
   firebase_database: ^11.1.6

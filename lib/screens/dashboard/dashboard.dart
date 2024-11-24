@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:pass_slip_management_web/services/apis/holidays.dart';
 import 'package:pass_slip_management_web/utils/palettes.dart';
 import 'package:pie_chart/pie_chart.dart';
+import 'package:syncfusion_flutter_charts/charts.dart' as charts;
 import 'package:table_calendar/table_calendar.dart';
 
 class Dashboard extends StatefulWidget {
@@ -24,6 +26,8 @@ class _DashboardState extends State<Dashboard> {
       body: Padding(
         padding: EdgeInsets.symmetric(vertical: 20),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Padding(
@@ -93,11 +97,55 @@ class _DashboardState extends State<Dashboard> {
                 ),
               )
             ),
+            SizedBox(
+              height: 10,
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Text("Daily Monitoring",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18,letterSpacing: 2),),
+            ),
+            SizedBox(
+              height: 10,
+            ),
             Expanded(
-              child: Container(
-                color: Colors.green,
-              ),
-            )
+              child: Padding(
+                padding: EdgeInsets.only(right: 50),
+                child: charts.SfCartesianChart(
+                    primaryXAxis: charts.CategoryAxis(
+                      labelStyle: TextStyle(fontSize: 15)
+                    ),
+                    primaryYAxis: charts.NumericAxis(minimum: 0, maximum: 40, interval: 10,),
+                    tooltipBehavior: charts.TooltipBehavior(enable: true),
+                    series: <charts.CartesianSeries<_ChartData, String>>[
+                      charts.ColumnSeries<_ChartData, String>(
+                          dataSource: [
+                            _ChartData('20 Nov, 2024', 12),
+                            _ChartData('21 Nov, 2024', 15),
+                            _ChartData('22 Nov, 2024', 30),
+                            _ChartData('23 Nov, 2024', 6.4),
+                            _ChartData('24 Nov, 2024', 2),
+                            _ChartData('25 Nov, 2024', 14)
+                          ],
+                          xValueMapper: (_ChartData data, _) => data.x,
+                          yValueMapper: (_ChartData data, _) => data.y,
+                          name: 'Accepted',
+                          color: palettes.darkblue),
+                      charts.ColumnSeries<_ChartData, String>(
+                          dataSource: [
+                            _ChartData('20 Nov, 2024', 56),
+                            _ChartData('21 Nov, 2024', 22),
+                            _ChartData('22 Nov, 2024', 55),
+                            _ChartData('23 Nov, 2024', 77),
+                            _ChartData('24 Nov, 2024', 6),
+                            _ChartData('25 Nov, 2024', 9)
+                          ],
+                          xValueMapper: (_ChartData data, _) => data.x,
+                          yValueMapper: (_ChartData data, _) => data.y,
+                          name: 'Declined',
+                          color: Colors.grey.shade400)
+                    ])
+              )
+            ),
           ],
         ),
       )
@@ -142,4 +190,10 @@ class _DashboardState extends State<Dashboard> {
       ),
     );
   }
+}
+
+class _ChartData {
+  _ChartData(this.x, this.y);
+  final String x;
+  final double y;
 }
