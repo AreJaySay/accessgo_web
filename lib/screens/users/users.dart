@@ -16,7 +16,7 @@ class _UsersState extends State<Users> {
   final TextEditingController _search = new TextEditingController();
   final ScreenLoaders _screenLoaders = new ScreenLoaders();
   final ShimmeringLoader _shimmeringLoader = new ShimmeringLoader();
-  var recentJobsRef = FirebaseDatabase.instance.ref().child('users');
+  var _users = FirebaseDatabase.instance.ref().child('users');
   String _checker = "";
 
   @override
@@ -28,22 +28,26 @@ class _UsersState extends State<Users> {
 
   @override
   Widget build(BuildContext context) {
+    double _scrw = MediaQuery.of(context).size.width;
+
     return StreamBuilder(
-      stream: recentJobsRef.onValue,
+      stream: _users.onValue,
       builder: (context, snapshot) {
         var datas;
         var local;
 
         if(snapshot.hasData){
-          if(_checker == ""){
-            datas = (snapshot.data!.snapshot.value as Map).values.toList();
-          }else{
-            datas = (snapshot.data!.snapshot.value as Map).values.toList().where((s) =>
-                s["firstname"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
-                s["lastname"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
-                s["email"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
-                s["phone number"].toString().toLowerCase().contains(_checker.toLowerCase())
-            ).toList();
+          if(snapshot.data!.snapshot.value != null){
+            if(_checker == ""){
+              datas = (snapshot.data!.snapshot.value as Map).values.toList();
+            }else{
+              datas = (snapshot.data!.snapshot.value as Map).values.toList().where((s) =>
+              s["firstname"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
+                  s["lastname"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
+                  s["email"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
+                  s["phone number"].toString().toLowerCase().contains(_checker.toLowerCase())
+              ).toList();
+            }
           }
         }
 
@@ -76,7 +80,7 @@ class _UsersState extends State<Users> {
             ),
           ),
           body: !snapshot.hasData ?
-          _table([]) :
+          _table([], _scrw) :
           snapshot.data!.snapshot.value == null || datas.isEmpty ?
           Center(
             child: Column(
@@ -87,14 +91,14 @@ class _UsersState extends State<Users> {
                   width: 300,
                   image: AssetImage("assets/icons/no_result_found.png"),
                 ),
-                Text("NO DATA FOUND",style: TextStyle(fontWeight: FontWeight.w700,fontSize: 16,color: Colors.grey.shade700),),
+                Text("NO DATA FOUND",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16,color: Colors.grey.shade700),),
                 SizedBox(
                   height: 5,
                 ),
                 Text("Click the add button below to create new one.",style: TextStyle(fontSize: 16),)
               ],
             ),
-          ) : _table(datas),
+          ) : _table(datas, _scrw),
             floatingActionButton: Padding(
               padding: EdgeInsets.all(15),
               child: FloatingActionButton(
@@ -118,7 +122,7 @@ class _UsersState extends State<Users> {
       }
     );
   }
-  Widget _table(var datas){
+  Widget _table(var datas, double scrw){
     return ScrollableTableView(
       headers: [
         "ID",
@@ -128,13 +132,13 @@ class _UsersState extends State<Users> {
         "Gender",
         "Phone number",
         "Address",
-        "",
         "Action",
-        "",
+        "Action",
+        "Action",
       ].map((label) {
         return TableViewHeader(
           label: label,
-          width: label == "ID" ? 60 : label == "Action" || label == "" ? 120 :  200,
+          width: label == "ID" ? scrw/30 : label == "Action" ? scrw/13 :  scrw/10.5,
         );
       }).toList(),
       rows: [
@@ -208,7 +212,7 @@ class _UsersState extends State<Users> {
                 },
                 child: Text("Update",style: TextStyle(color: palettes.blue,fontWeight: FontWeight.w500),),
               ) :
-              Text(value),
+              Text(value.toString(),textAlign: TextAlign.center,),
             );
           }).toList(),
         );

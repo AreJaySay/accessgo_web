@@ -1,10 +1,10 @@
+import 'package:cell_calendar/cell_calendar.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:pass_slip_management_web/services/apis/holidays.dart';
 import 'package:pass_slip_management_web/utils/palettes.dart';
 import 'package:pie_chart/pie_chart.dart';
 import 'package:syncfusion_flutter_charts/charts.dart' as charts;
-import 'package:table_calendar/table_calendar.dart';
 
 class Dashboard extends StatefulWidget {
   @override
@@ -12,140 +12,300 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    holidayServices.get();
-    super.initState();
-  }
+  var _users = FirebaseDatabase.instance.ref().child('users');
+  var _requests = FirebaseDatabase.instance.ref().child('requests');
+  var _events = FirebaseDatabase.instance.ref().child('events');
+  final cellCalendarPageController = CellCalendarPageController();
+  DateTime _current = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
         padding: EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
             Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Column(
-                      children: [
-                        Text("USERS CHART",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-                        SizedBox(
-                          height: 20,
-                        ),
-                        Expanded(
-                          child: _piechart(data: {
-                            "Active": 10,
-                            "Inactive": 3,
-                          },icon: Icons.people_alt_outlined, colorList: [
-                            palettes.blue,
-                            Colors.grey.shade400
-                          ],border: palettes.blue),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        Text("PASS SLIP CHART",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-                        SizedBox(
-                          height: 20,
-                        ),
-                        Expanded(
-                          child: _piechart(data: {
-                            "Pending": 10,
-                            "Accepted": 33,
-                            "Declined": 5,
-                            "Expired": 3,
-                          },icon: Icons.description_outlined, colorList: [
-                            Colors.orange,
-                            palettes.darkblue,
-                            Colors.grey.shade400,
-                            Colors.redAccent
-                          ],border: palettes.darkblue),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      width: 500,
-                      child: TableCalendar(
-                        daysOfWeekVisible: false,
-                        rowHeight: 67,
-                        firstDay: DateTime.utc(2000, 1, 1),
-                        lastDay: DateTime.utc(2090, 1, 1),
-                        focusedDay: DateTime.now(),
-                        calendarStyle: CalendarStyle(
-                          weekendTextStyle: TextStyle(color: Colors.red,fontFamily: "regular"),
-                          todayDecoration: BoxDecoration(
-                              color: palettes.blue,
-                            borderRadius: BorderRadius.circular(1000)
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          StreamBuilder(
+                            stream: _users.onValue,
+                            builder: (context, snapshot) {
+                              List? datas;
+
+                              if(snapshot.hasData){
+                                datas = (snapshot.data!.snapshot.value as Map).values.toList();
+                              }
+
+                              return Expanded(
+                                child: Column(
+                                  children: [
+                                    Text("USERS CHART",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
+                                    SizedBox(
+                                      height: 20,
+                                    ),
+                                    Expanded(
+                                      child: !snapshot.hasData ?
+                                      Center(
+                                        child: CircularProgressIndicator(color: palettes.blue,),
+                                      ) : _piechart(data: {
+                                        "Active": datas == null ? 0 :  double.parse(datas.where((s) => s["status"] == "Activate").toList().length.toString()),
+                                        "Inactive": datas == null ? 0 :  double.parse(datas.where((s) => s["status"] == "Deactivate").toList().length.toString()),
+                                      },icon: Icons.people_alt_outlined, colorList: [
+                                        palettes.blue,
+                                        Colors.grey.shade400
+                                      ],border: palettes.blue),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
                           ),
-                          todayTextStyle: TextStyle(color: Colors.white,fontFamily: "regular"),
-                          defaultTextStyle: TextStyle(color: Colors.black,fontFamily: "regular"),
-                          holidayTextStyle: TextStyle(color: Colors.blue)
-                        ),
+                          StreamBuilder(
+                              stream: _requests.onValue,
+                              builder: (context, snapshot) {
+                              List? datas;
+
+                              if(snapshot.hasData){
+                                if(snapshot.data!.snapshot.value != null){
+                                  datas = (snapshot.data!.snapshot.value as Map).values.toList();
+                                }
+                              }
+                              return Expanded(
+                                child: Column(
+                                  children: [
+                                    Text("PASS SLIP CHART",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
+                                    SizedBox(
+                                      height: 20,
+                                    ),
+                                    Expanded(
+                                      child: !snapshot.hasData ?
+                                      Center(
+                                        child: CircularProgressIndicator(color: palettes.blue,),
+                                      ) :
+                                      _piechart(data: {
+                                        "Pending": datas == null ? 0 : double.parse(datas.where((s) => s["status"] == "Pending").toList().length.toString()),
+                                        "Accepted": datas == null ? 0 :  double.parse(datas.where((s) => s["status"] == "Accepted").toList().length.toString()),
+                                        "Declined": datas == null ? 0 :  double.parse(datas.where((s) => s["status"] == "Declined").toList().length.toString()),
+                                        "Expired": datas == null ? 0 :  double.parse(datas.where((s) => s["status"] == "Expired").toList().length.toString()),
+                                      },icon: Icons.description_outlined, colorList: [
+                                        Colors.orange,
+                                        palettes.darkblue,
+                                        Colors.grey.shade400,
+                                        Colors.redAccent
+                                      ],border: palettes.darkblue),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          ),
+                        ],
                       ),
                     )
-                  ],
-                ),
-              )
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    child: Text("Monitoring",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18,letterSpacing: 2),),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  StreamBuilder(
+                      stream: _requests.onValue,
+                      builder: (context, snapshot) {
+                        List? datas;
+
+                        if(snapshot.hasData){
+                          if(snapshot.data!.snapshot.value != null){
+                            datas = (snapshot.data!.snapshot.value as Map).values.toList();
+                          }
+                        }
+
+                      return Expanded(
+                        child: !snapshot.hasData ?
+                        Center(
+                          child: CircularProgressIndicator(color: palettes.blue,),
+                        ) : Padding(
+                          padding: EdgeInsets.only(right: 50),
+                          child: charts.SfCartesianChart(
+                              primaryXAxis: charts.CategoryAxis(
+                                labelStyle: TextStyle(fontSize: 13)
+                              ),
+                              primaryYAxis: charts.NumericAxis(minimum: 0, maximum: 40, interval: 10,),
+                              tooltipBehavior: charts.TooltipBehavior(enable: true),
+                              series: <charts.CartesianSeries<_ChartData, String>>[
+                                if(datas != null)...{
+                                  charts.ColumnSeries<_ChartData, String>(
+                                      dataSource: [
+                                        if(datas.where((s) => s["status"] == "Accepted").toList().isNotEmpty)...{
+                                          for(int x = 0; x < datas.where((s) => s["status"] == "Accepted").toList().length; x++)...{
+                                            _ChartData(DateFormat("dd MMM, yyyy").format(DateTime.parse(datas.where((s) => s["status"] == "Accepted").toList()[x]["date"])), double.parse(datas.where((s) => s["status"] == "Accepted").toList().length.toString())),
+                                          }
+                                        }
+                                      ],
+                                      xValueMapper: (_ChartData data, _) => data.x,
+                                      yValueMapper: (_ChartData data, _) => data.y,
+                                      name: 'Accepted',
+                                      color: palettes.darkblue),
+                                  charts.ColumnSeries<_ChartData, String>(
+                                      dataSource: [
+                                        if(datas.where((s) => s["status"] == "Declined").toList().isNotEmpty)...{
+                                          for(int x = 0; x < datas.where((s) => s["status"] == "Declined").toList().length; x++)...{
+                                            _ChartData(DateFormat("dd MMM, yyyy").format(DateTime.parse(datas.where((s) => s["status"] == "Declined").toList()[x]["date"])), double.parse(datas.where((s) => s["status"] == "Declined").toList().length.toString())),
+                                          }
+                                        }
+                                      ],
+                                      xValueMapper: (_ChartData data, _) => data.x,
+                                      yValueMapper: (_ChartData data, _) => data.y,
+                                      name: 'Declined',
+                                      color: Colors.grey.shade400)
+                                }
+                              ])
+                        )
+                      );
+                    }
+                  ),
+                ],
+              ),
             ),
-            SizedBox(
-              height: 10,
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: Text("Daily Monitoring",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18,letterSpacing: 2),),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(right: 50),
-                child: charts.SfCartesianChart(
-                    primaryXAxis: charts.CategoryAxis(
-                      labelStyle: TextStyle(fontSize: 15)
+            StreamBuilder(
+                stream: _events.onValue,
+                builder: (context, snapshot) {
+                  List? datas;
+
+                  if(snapshot.hasData){
+                    if(snapshot.data!.snapshot.value != null){
+                      datas = (snapshot.data!.snapshot.value as Map).values.toList();
+                    }
+                  }
+
+                  print(datas);
+
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: 30,top: 10),
+                      child: !snapshot.hasData ?
+                      Center(
+                        child: CircularProgressIndicator(color: palettes.blue,),
+                      ) : CellCalendar(
+                        dateTextStyle: TextStyle(fontSize: 15),
+                        cellCalendarPageController: cellCalendarPageController,
+                        events: [
+                          if(datas != null)...{
+                            for(int x = 0; x < datas.length; x++)...{
+                              _calendar(date: DateTime.parse(datas[x]["start date"]), event: datas[x]["name"])
+                            }
+                          }
+                        ],
+                        monthYearLabelBuilder: (datetime) {
+                          final year = datetime!.year.toString();
+                          final month = datetime.month.monthName;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: Row(
+                              children: [
+                                Text(
+                                  "$month  $year",
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(Icons.keyboard_arrow_left),
+                                  onPressed: () {
+                                    setState(() {
+                                      _current = DateTime(_current.year, _current.month - 1 , _current.day);
+                                    });
+                                    cellCalendarPageController.animateToDate(
+                                      _current,
+                                      curve: Curves.linear,
+                                      duration: const Duration(milliseconds: 300),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(Icons.keyboard_arrow_right),
+                                  onPressed: () {
+                                    setState(() {
+                                      _current = DateTime(_current.year, _current.month + 1, _current.day);
+                                    });
+                                    cellCalendarPageController.animateToDate(
+                                      _current,
+                                      curve: Curves.linear,
+                                      duration: const Duration(milliseconds: 300),
+                                    );
+                                  },
+                                )
+                              ],
+                            ),
+                          );
+                        },
+                        onCellTapped: (date) {
+                          final eventsOnTheDate = [
+                            for(int x = 0; x < datas!.length; x++)...{
+                              _calendar(date: DateTime.parse(datas[x]["start date"]), event: datas[x]["name"])
+                            }
+                          ].where((event) {
+                            final eventDate = event.eventDate;
+                            return eventDate.year == date.year &&
+                                eventDate.month == date.month &&
+                                eventDate.day == date.day;
+                          }).toList();
+                          if(eventsOnTheDate.isNotEmpty){
+                            showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: Text("${date.month.monthName} ${date.day}"),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: eventsOnTheDate
+                                        .map(
+                                          (event) =>
+                                          Container(
+                                            width: double.infinity,
+                                            padding: EdgeInsets.symmetric(horizontal: 10,vertical: 5),
+                                            margin: const EdgeInsets.only(bottom: 12),
+                                            color: event.eventBackgroundColor,
+                                            child: Text(
+                                              event.eventName,
+                                              style: TextStyle(fontSize: 14,color: Colors.white),
+                                            ),
+                                          ),
+                                    )
+                                        .toList(),
+                                  ),
+                                ));
+                          }
+                        },
+                        onPageChanged: (firstDate, lastDate) {
+                          print("asdasd");
+                          /// Called when the page was changed
+                          /// Fetch additional events by using the range between [firstDate] and [lastDate] if you want
+                        },
+                      ),
                     ),
-                    primaryYAxis: charts.NumericAxis(minimum: 0, maximum: 40, interval: 10,),
-                    tooltipBehavior: charts.TooltipBehavior(enable: true),
-                    series: <charts.CartesianSeries<_ChartData, String>>[
-                      charts.ColumnSeries<_ChartData, String>(
-                          dataSource: [
-                            _ChartData('20 Nov, 2024', 12),
-                            _ChartData('21 Nov, 2024', 15),
-                            _ChartData('22 Nov, 2024', 30),
-                            _ChartData('23 Nov, 2024', 6.4),
-                            _ChartData('24 Nov, 2024', 2),
-                            _ChartData('25 Nov, 2024', 14)
-                          ],
-                          xValueMapper: (_ChartData data, _) => data.x,
-                          yValueMapper: (_ChartData data, _) => data.y,
-                          name: 'Accepted',
-                          color: palettes.darkblue),
-                      charts.ColumnSeries<_ChartData, String>(
-                          dataSource: [
-                            _ChartData('20 Nov, 2024', 56),
-                            _ChartData('21 Nov, 2024', 22),
-                            _ChartData('22 Nov, 2024', 55),
-                            _ChartData('23 Nov, 2024', 77),
-                            _ChartData('24 Nov, 2024', 6),
-                            _ChartData('25 Nov, 2024', 9)
-                          ],
-                          xValueMapper: (_ChartData data, _) => data.x,
-                          yValueMapper: (_ChartData data, _) => data.y,
-                          name: 'Declined',
-                          color: Colors.grey.shade400)
-                    ])
-              )
+                  );
+                }
             ),
+            SizedBox(
+              width: 20,
+            )
           ],
         ),
       )
@@ -187,6 +347,18 @@ class _DashboardState extends State<Dashboard> {
         showChartValuesInPercentage: false,
         showChartValuesOutside: false,
         decimalPlaces: 0,
+      ),
+    );
+  }
+
+  CalendarEvent _calendar({required DateTime date, required String event}){
+    return CalendarEvent(
+      eventName: event,
+      eventDate: date,
+      eventBackgroundColor: palettes.darkblue,
+      eventTextStyle: TextStyle(
+        fontSize: 9,
+        color: Colors.white,
       ),
     );
   }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:pass_slip_management_web/functions/confirm_action.dart';
 import 'package:pass_slip_management_web/functions/loaders.dart';
-import 'package:pass_slip_management_web/screens/pass_slip/components/create_slip.dart';
+import 'package:pass_slip_management_web/screens/pass_slip/components/show_qr_code.dart';
 import 'package:pass_slip_management_web/utils/palettes.dart';
 import 'package:pass_slip_management_web/widgets/shimmering_loader.dart';
 import 'package:scrollable_table_view/scrollable_table_view.dart';
@@ -16,7 +17,7 @@ class _PassSlipState extends State<PassSlip> {
   final TextEditingController _search = new TextEditingController();
   final ScreenLoaders _screenLoaders = new ScreenLoaders();
   final ShimmeringLoader _shimmeringLoader = new ShimmeringLoader();
-  var recentJobsRef = FirebaseDatabase.instance.ref().child('PassSlip');
+  var _requests = FirebaseDatabase.instance.ref().child('requests');
   String _checker = "";
 
   @override
@@ -28,22 +29,27 @@ class _PassSlipState extends State<PassSlip> {
 
   @override
   Widget build(BuildContext context) {
+    double _scrw = MediaQuery.of(context).size.width;
+
     return StreamBuilder(
-        stream: recentJobsRef.onValue,
+        stream: _requests.onValue,
         builder: (context, snapshot) {
           var datas;
           var local;
 
           if(snapshot.hasData){
-            if(_checker == ""){
-              datas = (snapshot.data!.snapshot.value as Map).values.toList();
-            }else{
-              datas = (snapshot.data!.snapshot.value as Map).values.toList().where((s) =>
-              s["firstname"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
-                  s["lastname"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
-                  s["email"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
-                  s["phone number"].toString().toLowerCase().contains(_checker.toLowerCase())
-              ).toList();
+            if(snapshot.data!.snapshot.value != null){
+              if(_checker == ""){
+                datas = (snapshot.data!.snapshot.value as Map).values.toList();
+              }else{
+                datas = (snapshot.data!.snapshot.value as Map).values.toList().where((s) =>
+                s["firstname"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
+                    s["lastname"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
+                    s["email"].toString().toLowerCase().contains(_checker.toLowerCase()) ||
+                    s["date"].toString().toLowerCase().contains(_checker.toLowerCase())||
+                    s["time"].toString().toLowerCase().contains(_checker.toLowerCase())
+                ).toList();
+              }
             }
           }
 
@@ -76,7 +82,7 @@ class _PassSlipState extends State<PassSlip> {
                 ),
               ),
               body: !snapshot.hasData ?
-              _table([]) :
+              _table([], _scrw) :
               snapshot.data!.snapshot.value == null || datas.isEmpty ?
               Center(
                 child: Column(
@@ -87,63 +93,53 @@ class _PassSlipState extends State<PassSlip> {
                       width: 300,
                       image: AssetImage("assets/icons/no_result_found.png"),
                     ),
-                    Text("NO DATA FOUND",style: TextStyle(fontWeight: FontWeight.w700,fontSize: 16,color: Colors.grey.shade700),),
+                    Text("NO DATA FOUND",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16,color: Colors.grey.shade700),),
                     SizedBox(
                       height: 5,
                     ),
-                    Text("Click the add button below to create new one.",style: TextStyle(fontSize: 16),)
+                    Text("No requested pass slip for the maintime.",style: TextStyle(fontSize: 16),)
                   ],
                 ),
-              ) : _table(datas),
-              floatingActionButton: Padding(
-                padding: EdgeInsets.all(15),
-                child: FloatingActionButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => CreatePassSlip(details: {},),
-                    );
-                  },
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(1000)
-                  ),
-                  child: Center(
-                    child: Icon(Icons.person_add_alt_1,color: palettes.darkblue,size: 27,),
-                  ),
-                ),
-              )
+              ) : _table(datas, _scrw),
           );
         }
     );
   }
-  Widget _table(var datas){
+  Widget _table(var datas, double scrw){
     return ScrollableTableView(
       headers: [
         "ID",
-        "Firstname",
-        "Lastname",
+        "Fullname",
         "Email",
-        "Gender",
-        "Phone number",
-        "Address",
-        "",
+        "Date",
+        "Time",
+        "Reason",
+        "Status",
+        "Expiration",
         "Action",
-        "",
+        "Action",
       ].map((label) {
         return TableViewHeader(
           label: label,
-          width: label == "ID" ? 60 : label == "Action" || label == "" ? 120 :  200,
+          width: label == "ID" ? scrw/30 : label == "Action" ? scrw/13 :  scrw/10.8,
         );
       }).toList(),
       rows: [
         if(datas.isNotEmpty)...{
-          for(int x = 0; x < datas.length; x++)...{
-            ["${x+1}", datas[x]["firstname"], datas[x]["lastname"], datas[x]["email"], datas[x]["gender"], datas[x]["phone number"], datas[x]["address"],"Update ${datas[x]["email"]}", "${datas[x]["status"]} ${datas[x]["email"]}", "Delete ${datas[x]["email"]}"],
+         for(int x = 0; x < datas.length; x++)...{
+          if(datas[x]["expiration"] != "NA")...{
+            if(datas[x]["status"] == "Expired")...{
+              ["${x+1}", "${datas[x]["firstname"]} ${datas[x]["lastname"]}", datas[x]["email"], "${DateFormat("dd MMMM yyyy").format(DateTime.parse(datas[x]["date"]))}", "${DateFormat("h:mm a").format(DateTime.parse(datas[x]["time"]))}", datas[x]["reason"], datas[x]["status"], "${DateFormat("h:mm a").format(DateTime.parse(datas[x]["expiration"]))}",  "Disabled" ,  "deleterequest/${datas[x]["date"]}"],
+            }else...{
+              ["${x+1}", "${datas[x]["firstname"]} ${datas[x]["lastname"]}", datas[x]["email"], "${DateFormat("dd MMMM yyyy").format(DateTime.parse(datas[x]["date"]))}", "${DateFormat("h:mm a").format(DateTime.parse(datas[x]["time"]))}", datas[x]["reason"], datas[x]["status"], "${DateFormat("h:mm a").format(DateTime.parse(datas[x]["expiration"]))}",  "${datas[x]["status"] == "Accepted" ? "showqrcode/${datas[x]["date"].toString()}/${datas[x]["firstname"]} ${datas[x]["lastname"]}" : "acceptrequest/${datas[x]["date"]}"}" , "${datas[x]["status"] == "Declined" ? "deleterequest/${datas[x]["date"]}" : "declinerequest/${datas[x]["date"]}"}"],
+            }
+          }else...{
+            ["${x+1}", "${datas[x]["firstname"]} ${datas[x]["lastname"]}", datas[x]["email"], "${DateFormat("dd MMMM yyyy").format(DateTime.parse(datas[x]["date"]))}", "${DateFormat("h:mm a").format(DateTime.parse(datas[x]["time"]))}", datas[x]["reason"], datas[x]["status"], "${datas[x]["expiration"] == "NA" ? "NA" : DateFormat("h:mm a").format(DateTime.parse(datas[x]["expiration"]))}",  "${datas[x]["status"] == "Accepted" ? "showqrcode/${datas[x]["date"].toString()}/${datas[x]["firstname"]} ${datas[x]["lastname"]}" : "acceptrequest/${datas[x]["date"]}"}" , "${datas[x]["status"] == "Declined" ? "deleterequest/${datas[x]["date"]}" : "declinerequest/${datas[x]["date"]}"}"],
           }
+         }
         }else...{
           for(int x = 0; x < 5; x++)...{
-            ["", "", "", "", "", "", "","", "", ""],
+            ["", "", "", "", "", "","", "", "", ""],
           }
         }
       ].map((record) {
@@ -154,60 +150,58 @@ class _PassSlipState extends State<PassSlip> {
             return TableViewCell(
               child: datas.isEmpty?
               _shimmeringLoader.pageLoader(radius: 5, width: 100, height: 30) :
-              value.toString().contains("Deactivate") ?
+              value.toString().contains("acceptrequest") ?
               TextButton(
                 onPressed: (){
                   confirmAction.action(context, (){
-                    DatabaseReference ref = FirebaseDatabase.instance.ref("PassSlip");
-                    FirebaseDatabase.instance.ref().child('PassSlip').orderByChild("email").equalTo(value.toString().split(" ")[1]).onChildAdded.forEach((event)async{
+                    DatabaseReference ref = FirebaseDatabase.instance.ref("requests");
+                    FirebaseDatabase.instance.ref().child('requests').orderByChild("date").equalTo(value.toString().split("/")[1]).onChildAdded.forEach((event)async{
                       await ref.update({
-                        "${event.snapshot.key!}/status": "Activate",
+                        "${event.snapshot.key!}/status": "Accepted",
                       });
                     });
-                  }, 'Are you sure you want to activate this account ?');
+                  }, 'Are you sure you want to accept this request ?');
                 },
-                child: Text("Activate",style: TextStyle(color: palettes.darkblue,fontWeight: FontWeight.w500),),
+                child: Text("Accept",style: TextStyle(color: palettes.blue,fontWeight: FontWeight.w500),),
               ) :
-              value.toString().contains("Activate") ?
+              value.toString().contains("declinerequest") ?
               TextButton(
                 onPressed: (){
                   confirmAction.action(context, (){
-                    DatabaseReference ref = FirebaseDatabase.instance.ref("PassSlip");
-                    FirebaseDatabase.instance.ref().child('PassSlip').orderByChild("email").equalTo(value.toString().split(" ")[1]).onChildAdded.forEach((event)async{
+                    DatabaseReference ref = FirebaseDatabase.instance.ref("requests");
+                    FirebaseDatabase.instance.ref().child('requests').orderByChild("date").equalTo(value.toString().split("/")[1]).onChildAdded.forEach((event)async{
                       await ref.update({
-                        "${event.snapshot.key!}/status": "Deactivate",
+                        "${event.snapshot.key!}/status": "Declined",
+                        "${event.snapshot.key!}/expiration": "NA",
                       });
                     });
-                  }, 'Are you sure you want to deactivate this account ?');
+                  }, 'Are you sure you want to declined this request ?');
                 },
-                child: Text("Deactivate",style: TextStyle(color: palettes.darkblue,fontWeight: FontWeight.w500),),
+                child: Text("Declined",style: TextStyle(color: Colors.orange,fontWeight: FontWeight.w500),),
               ) :
-              value.toString().contains("Delete") ?
+              value.toString().contains("showqrcode") ?
+              TextButton(
+                onPressed: (){
+                  showDialog(
+                    context: context,
+                    builder: (_) => ShowQrCode(date: value.toString().split("/")[1], fullname: value.toString().split("/")[2],),
+                  );
+                },
+                child: Text("Show qr code",style: TextStyle(color: palettes.darkblue,fontWeight: FontWeight.w500),),
+              ) :
+              value.toString().contains("deleterequest") ?
               TextButton(
                 onPressed: (){
                   confirmAction.action(context, (){
-                    FirebaseDatabase.instance.ref().child('PassSlip').orderByChild("email").equalTo(value.toString().split(" ")[1]).onChildAdded.forEach((event)async{
-                      DatabaseReference ref = FirebaseDatabase.instance.ref("PassSlip/${event.snapshot.key!}");
+                    FirebaseDatabase.instance.ref().child('requests').orderByChild("date").equalTo(value.toString().split("/")[1]).onChildAdded.forEach((event)async{
+                      DatabaseReference ref = FirebaseDatabase.instance.ref("requests/${event.snapshot.key!}");
                       await ref.remove();
                     });
-                  }, 'Are you sure you want to delete this account ?');
+                  }, 'Are you sure you want to delete this request ?');
                 },
                 child: Text("Delete",style: TextStyle(color: Colors.redAccent,fontWeight: FontWeight.w500),),
               ) :
-              value.toString().contains("Update") ?
-              TextButton(
-                onPressed: (){
-                  FirebaseDatabase.instance.ref().child('PassSlip').orderByChild("email").equalTo(value.toString().split(" ")[1]).onChildAdded.forEach((event){
-                    print(event.snapshot.value);
-                    showDialog(
-                      context: context,
-                      builder: (_) => CreatePassSlip(details: event.snapshot.value as Map,),
-                    );
-                  });
-                },
-                child: Text("Update",style: TextStyle(color: palettes.blue,fontWeight: FontWeight.w500),),
-              ) :
-              Text(value),
+              Text(value,textAlign: TextAlign.center,),
             );
           }).toList(),
         );

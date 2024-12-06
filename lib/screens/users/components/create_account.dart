@@ -78,7 +78,7 @@ class _CreateAccountState extends State<CreateAccount> with SingleTickerProvider
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(
-        widget.details != {} ?
+        widget.details.toString() != "{}" ?
         'Update account' :
         'Create new account',
         textAlign: TextAlign.center,
@@ -152,7 +152,7 @@ class _CreateAccountState extends State<CreateAccount> with SingleTickerProvider
                     value: gender,
                     hint: Text(
                       "Gender",
-                      style: TextStyle(fontFamily: "regular",color: Colors.grey.shade800),
+                      style: TextStyle(fontFamily: "regular",color: Colors.grey),
                     ),
                     items: _genderChoice
                         .map(
@@ -272,7 +272,7 @@ class _CreateAccountState extends State<CreateAccount> with SingleTickerProvider
       counterText: "",
       border: InputBorder.none,
       hintText: hint,
-      hintStyle: TextStyle(fontFamily: "regular"),
+      hintStyle: TextStyle(fontFamily: "regular",color: Colors.grey),
       contentPadding: EdgeInsets.all(20),
       enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(color: Colors.grey),

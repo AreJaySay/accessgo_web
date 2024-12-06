@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pass_slip_management_web/screens/dashboard/dashboard.dart';
+import 'package:pass_slip_management_web/screens/events/events.dart';
+import 'package:pass_slip_management_web/screens/location_tracker/location_tracker.dart';
+import 'package:pass_slip_management_web/screens/pass_slip/pass_slip.dart';
 import 'package:pass_slip_management_web/screens/users/users.dart';
 import 'package:pass_slip_management_web/utils/palettes.dart';
 import 'package:sidebar_with_animation/animated_side_bar.dart';
@@ -10,7 +13,7 @@ class Landing extends StatefulWidget {
 }
 
 class _LandingState extends State<Landing> {
-  List<Widget> _screens = [Dashboard(), Users(), Center(child: Text("PASS SLIP PAGE")), Center(child: Text("EVENTS PAGE")), Center(child: Text("LOCATION TRACKER PAGE"))];
+  List<Widget> _screens = [Dashboard(), Users(), PassSlip(), Events(), LocationTracker()];
   int _index = 0;
 
   @override
